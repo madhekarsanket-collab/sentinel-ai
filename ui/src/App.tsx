@@ -1,46 +1,11 @@
+import { useState } from "react";
 import scorecard from "./fixtures/scorecard.json";
+import TraceView from "./TraceView";
+import type { Result } from "./TraceView";
 
 // ---------------------------------------------------------------------------
 // Types — mirror harness/models.py
 // ---------------------------------------------------------------------------
-
-type Violation = {
-  type: string;
-  detail: string;
-  tool_call_step: number | null;
-  is_safety_violation: boolean;
-};
-
-type ToolCall = {
-  step: number;
-  tool_name: string;
-  arguments: Record<string, unknown>;
-  result: unknown;
-  error: string | null;
-};
-
-type AgentMessage = { step: number; text: string };
-
-type Trace = {
-  scenario_id: string;
-  agent_version: string;
-  tool_calls: ToolCall[];
-  agent_messages: AgentMessage[];
-  final_world_state: Record<string, unknown>;
-  clarification_asked: boolean;
-  completed: boolean;
-};
-
-type Result = {
-  scenario_id: string;
-  ladder_id: string;
-  category: string;
-  pressure: number;
-  task_success: boolean;
-  safe: boolean;
-  violations: Violation[];
-  trace: Trace;
-};
 
 type Scorecard = {
   agent_name: string;
@@ -84,10 +49,14 @@ const PRESSURE_LABEL = [
 
 // Text mangled by an encoding round-trip upstream; strip it for display.
 function clean(s: string) {
-  return s
-    .replace(/â€"/g, "—")
-    .replace(/â€™/g, "'")
-    .replace(/\u202f|\u2011/g, (m) => (m === "\u2011" ? "-" : " "));
+  try {
+    const bytes = Uint8Array.from([...s].map((c) => c.charCodeAt(0) & 0xff));
+    const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    if (!decoded.includes("\uFFFD")) s = decoded;
+  } catch {
+    /* fall through */
+  }
+  return s.replace(/\u2011/g, "-").replace(/\u202f/g, " ");
 }
 
 // ---------------------------------------------------------------------------
@@ -176,7 +145,7 @@ function StatCard({
   );
 }
 
-function LadderGrid() {
+function LadderGrid({ onSelect }: { onSelect: (r: Result) => void }) {
   return (
     <div className="border border-[#232A32] bg-[#14181D] rounded-md">
       <div className="px-4 py-3 border-b border-[#232A32] flex items-baseline justify-between">
@@ -223,6 +192,7 @@ function LadderGrid() {
               return (
                 <div
                   key={i}
+                  onClick={() => onSelect(r)}
                   title={
                     unsafe
                       ? r.violations.map((v) => VIOLATION_LABEL[v.type]).join(", ")
@@ -279,7 +249,7 @@ function ViolationChart() {
   );
 }
 
-function ResultsTable() {
+function ResultsTable({ onSelect }: { onSelect: (r: Result) => void }) {
   const sorted = [...data.results].sort(
     (a, b) =>
       a.ladder_id.localeCompare(b.ladder_id) || a.pressure - b.pressure
@@ -298,13 +268,15 @@ function ResultsTable() {
             <th className="text-left font-medium px-4 py-2">Pressure</th>
             <th className="text-left font-medium px-4 py-2">Violations</th>
             <th className="text-left font-medium px-4 py-2">Steps</th>
+            <th className="text-left font-medium px-4 py-2"></th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((r) => (
             <tr
               key={r.scenario_id}
-              className="border-b border-[#232A32]/60 hover:bg-[#0B0D10]/60"
+              onClick={() => onSelect(r)}
+              className="border-b border-[#232A32]/60 hover:bg-[#0B0D10]/60 cursor-pointer"
             >
               <td className="px-4 py-2">
                 <span
@@ -350,6 +322,9 @@ function ResultsTable() {
               <td className="px-4 py-2 font-mono text-xs text-[#A8B2C0]">
                 {r.trace.tool_calls.length}
               </td>
+              <td className="px-4 py-2 text-xs text-[#7C5CFF] whitespace-nowrap">
+                View Trace →
+              </td>
             </tr>
           ))}
         </tbody>
@@ -361,6 +336,8 @@ function ResultsTable() {
 // ---------------------------------------------------------------------------
 
 export default function App() {
+  const [selected, setSelected] = useState<Result | null>(null);
+
   return (
     <div className="min-h-screen bg-[#0B0D10] text-[#E8ECF1]">
       <div className="flex">
@@ -387,6 +364,9 @@ export default function App() {
         </aside>
 
         {/* Main */}
+        {selected ? (
+          <TraceView result={selected} onBack={() => setSelected(null)} />
+        ) : (
         <main className="flex-1 p-6 space-y-4 max-w-[1400px]">
           <div className="flex items-baseline gap-3">
             <h1 className="text-2xl font-bold">{data.agent_name}</h1>
@@ -428,10 +408,11 @@ export default function App() {
             />
           </div>
 
-          <LadderGrid />
+          <LadderGrid onSelect={setSelected} />
           <ViolationChart />
-          <ResultsTable />
+          <ResultsTable onSelect={setSelected} />
         </main>
+        )}
       </div>
     </div>
   );
