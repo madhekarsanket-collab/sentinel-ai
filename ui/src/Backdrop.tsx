@@ -16,9 +16,9 @@ export default function Backdrop() {
         preserveAspectRatio="none"
       >
         <g className="backdrop__drift">
-          <path d={TRACE} fill="none" stroke="var(--hold)" strokeWidth="1.4" />
+          <path d={TRACE} fill="none" stroke="var(--hold)" strokeWidth="2.2" />
           <g transform="translate(2400,0)">
-            <path d={TRACE} fill="none" stroke="var(--hold)" strokeWidth="1.4" />
+            <path d={TRACE} fill="none" stroke="var(--hold)" strokeWidth="2.2" />
           </g>
         </g>
       </svg>
@@ -30,9 +30,9 @@ export default function Backdrop() {
         preserveAspectRatio="none"
       >
         <g className="backdrop__drift backdrop__drift--slow">
-          <path d={TRACE} fill="none" stroke="var(--signal)" strokeWidth="1.2" />
+          <path d={TRACE} fill="none" stroke="var(--signal)" strokeWidth="2" />
           <g transform="translate(2400,0)">
-            <path d={TRACE} fill="none" stroke="var(--signal)" strokeWidth="1.2" />
+            <path d={TRACE} fill="none" stroke="var(--signal)" strokeWidth="2" />
           </g>
         </g>
       </svg>

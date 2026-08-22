@@ -7,11 +7,11 @@
    =========================================================================== */
 
 :root {
-  --void: #0b1119;
-  --panel: #121a25;
-  --panel-hi: #18222f;
-  --line: #27333f;
-  --line-soft: #1e2833;
+  --void: #101823;
+  --panel: #18222e;
+  --panel-hi: #1e2a38;
+  --line: #32404f;
+  --line-soft: #26313d;
 
   --text: #e6edf5;
   --text-dim: #8b9aad;
@@ -53,10 +53,10 @@ pre,
   background-color: var(--void);
   background-image: linear-gradient(
       to right,
-      rgba(140, 180, 225, 0.05) 1px,
+      rgba(150, 190, 235, 0.11) 1px,
       transparent 1px
     ),
-    linear-gradient(to bottom, rgba(140, 180, 225, 0.05) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(150, 190, 235, 0.11) 1px, transparent 1px);
   background-size: 44px 44px;
 }
 
@@ -69,8 +69,8 @@ pre,
   z-index: 50;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.022) 0px,
-    rgba(255, 255, 255, 0.022) 1px,
+    rgba(255, 255, 255, 0.04) 0px,
+    rgba(255, 255, 255, 0.04) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -88,7 +88,7 @@ pre,
   z-index: 0;
   background: radial-gradient(
     circle,
-    rgba(255, 180, 84, 0.085) 0%,
+    rgba(255, 180, 84, 0.16) 0%,
     transparent 68%
   );
 }
@@ -288,8 +288,8 @@ pre,
   z-index: 1;
   pointer-events: none;
   background: radial-gradient(
-    460px circle at var(--px, 50vw) var(--py, 30vh),
-    rgba(255, 180, 84, 0.09),
+    540px circle at var(--px, 50vw) var(--py, 30vh),
+    rgba(255, 180, 84, 0.17),
     transparent 62%
   );
   transition: background 0.12s linear;
@@ -391,15 +391,15 @@ pre,
   position: absolute;
   left: 0;
   width: 200%;
-  height: 220px;
-  top: 32%;
-  opacity: 0.13;
+  height: 300px;
+  top: 26%;
+  opacity: 0.27;
 }
 
 .backdrop__scope--low {
-  top: 66%;
-  height: 180px;
-  opacity: 0.095;
+  top: 62%;
+  height: 260px;
+  opacity: 0.2;
 }
 
 @keyframes drift {
@@ -446,9 +446,9 @@ pre,
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(255, 180, 84, 0.045) 45%,
-    rgba(255, 180, 84, 0.08) 50%,
-    rgba(255, 180, 84, 0.045) 55%,
+    rgba(255, 180, 84, 0.085) 45%,
+    rgba(255, 180, 84, 0.15) 50%,
+    rgba(255, 180, 84, 0.085) 55%,
     transparent
   );
   animation: crt-sweep 11s cubic-bezier(0.4, 0, 0.6, 1) infinite;
