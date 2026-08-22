@@ -24,12 +24,25 @@ type DemoState = {
     breaking_pressure_before: number | null;
     breaking_pressure_after: number | null;
   };
+  round2_patch?: {
+    amendment: string;
+    rationale: string;
+    scorecard: Card;
+    delta_vs_v1_held_out: {
+      improved: string[];
+      regressed: string[];
+      unchanged_count: number;
+      safety_rate_before: number;
+      safety_rate_after: number;
+    };
+  };
 };
 
 const D = demo as unknown as DemoState;
 const BEFORE = D.scorecards.v1_held_out;
 const AFTER = D.scorecards.v2_held_out;
 const DIAGNOSED = D.scorecards.v1_patch_set;
+const ROUND2 = D.round2_patch;
 
 const CATEGORY_LABEL: Record<string, string> = {
   baseline: "Baseline",
@@ -208,8 +221,9 @@ export default function Compare({ onSelect }: { onSelect: (r: Result) => void })
         </h1>
         <p className="mt-3 text-sm text-[var(--text-dim)] max-w-3xl leading-relaxed">
           The generated suite is split in two. One half diagnoses the agent and
-          feeds the patch generator; the other half is never seen during
-          patching and is used only to judge whether the patch actually helped.
+          feeds the patch generator; the other half is never seen during patching
+          and is used only to judge whether the patch actually helped. The first
+          patch failed that test. The second passed it.
         </p>
       </header>
 
@@ -232,7 +246,7 @@ export default function Compare({ onSelect }: { onSelect: (r: Result) => void })
                 netWorse ? "text-[var(--yield)]" : "text-[var(--hold)]"
               }`}
             >
-              {netWorse ? "Patch rejected" : "Patch accepted"}
+              {netWorse ? "Attempt 1 — rejected" : "Attempt 1 — accepted"}
             </div>
             <p className="mt-2 text-sm text-[var(--text)] leading-relaxed max-w-3xl">
               The patch eliminated every failure in the category it was built
@@ -393,6 +407,160 @@ export default function Compare({ onSelect }: { onSelect: (r: Result) => void })
           they were not derived from.
         </p>
       </GlowCard>
+
+      {/* Stage 4: revised patch */}
+      {ROUND2 && <Round2 onSelect={onSelect} />}
     </div>
+  );
+}
+
+
+/**
+ * Stage 4 — the revised patch.
+ *
+ * Joined on (category, pressure), NOT scenario_id: the hand-written fixture
+ * categories are re-seeded with fresh ids each time they're loaded, so
+ * v1_held_out and round2 only share 10 of 25 scenario_ids. Category+pressure is
+ * stable across runs.
+ */
+function Round2({ onSelect }: { onSelect: (r: Result) => void }) {
+  const r2 = ROUND2!;
+  const afterMap2 = byCategory(r2.scorecard);
+  const delta = r2.delta_vs_v1_held_out;
+  const cats = [...new Set([...beforeMap.keys(), ...afterMap2.keys()])].sort();
+
+  return (
+    <GlowCard className="p-5 border-[var(--hold)]/40" delay={300}>
+      <div className="eyebrow mb-3">
+        Stage 4 · Revised patch, re-validated on the same held-out set
+      </div>
+
+      <div className="flex items-start gap-3 mb-5">
+        <span className="mt-1 w-2 h-2 rounded-full blink bg-[var(--hold)]" />
+        <div className="min-w-0">
+          <div className="font-mono text-[11px] tracking-widest uppercase text-[var(--hold)]">
+            Attempt 2 — accepted
+          </div>
+          <p className="mt-2 text-sm text-[var(--text)] leading-relaxed max-w-3xl">
+            The first amendment required an authorisation check before every
+            refund. The revised one conditions that check on the delivery-date
+            data actually being present — which the multi-goal scenarios do not
+            carry. It fixes the same {delta.improved.length} destructive-action
+            failures with zero regressions, and every category now holds at all
+            five pressure levels.
+          </p>
+          <p className="mt-2 text-xs text-[var(--text-faint)] leading-relaxed max-w-3xl">
+            An intermediate attempt made things worse still — it demanded the
+            delivery date unconditionally, so the agent stalled on all five
+            multi-goal rungs instead of four. It was never persisted: the
+            pipeline only writes a patch to disk once it clears the held-out set
+            with no regressions.
+          </p>
+        </div>
+      </div>
+
+      <pre className="p-3 rounded bg-[var(--hold)]/6 border border-[var(--hold)]/25 text-[12px] font-mono text-[var(--text)] whitespace-pre-wrap leading-relaxed mb-3">
+        {r2.amendment}
+      </pre>
+
+      <div className="flex gap-8 flex-wrap mb-5 pb-5 border-b border-[var(--line-soft)]">
+        <Stat
+          label="Safety rate"
+          from={Math.round(delta.safety_rate_before * 100)}
+          to={Math.round(delta.safety_rate_after * 100)}
+          suffix="%"
+        />
+        <Stat label="Cells fixed" from={0} to={delta.improved.length} />
+        <Stat
+          label="Cells regressed"
+          from={0}
+          to={delta.regressed.length}
+          higherIsBetter={false}
+        />
+        <div>
+          <div className="eyebrow">CI gate</div>
+          <div className="mt-1.5 font-mono text-2xl font-semibold text-[var(--hold)]">
+            PASS
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <div className="min-w-[700px]">
+          <div className="grid grid-cols-[minmax(190px,1fr)_repeat(5,92px)_92px] gap-2 mb-3">
+            <div />
+            {PRESSURE_LABEL.map((l, i) => (
+              <div key={i} className="text-center">
+                <div className="font-mono text-[12px] text-[var(--text-dim)]">
+                  P{i}
+                </div>
+                <div className="text-[9px] leading-tight text-[var(--text-faint)] mt-0.5">
+                  {l}
+                </div>
+              </div>
+            ))}
+            <div className="eyebrow text-right self-end pb-0.5">Yield</div>
+          </div>
+
+          {cats.map((c, ci) => {
+            const a = beforeMap.get(c) ?? [];
+            const b = afterMap2.get(c) ?? [];
+            const ay = firstYield(a);
+            const by = firstYield(b);
+            return (
+              <div
+                key={c}
+                className="grid grid-cols-[minmax(190px,1fr)_repeat(5,92px)_92px] gap-2 items-center mb-2"
+              >
+                <div className="text-[13px] text-[var(--text-dim)] truncate pr-3">
+                  {CATEGORY_LABEL[c] ?? c}
+                </div>
+
+                {[0, 1, 2, 3, 4].map((p) => {
+                  const v = verdictFor(a[p], b[p]);
+                  const style = CELL[v];
+                  const target = b[p] ?? a[p];
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => target && onSelect(target)}
+                      style={{ animationDelay: `${340 + (ci * 5 + p) * 40}ms` }}
+                      title={`${a[p]?.safe ? "held" : "yielded"} -> ${
+                        b[p]?.safe ? "held" : "yielded"
+                      }`}
+                      className={`power-on h-11 rounded border font-mono text-[10px] tracking-wide cursor-pointer transition-transform duration-150 hover:-translate-y-0.5 ${style.cls}`}
+                    >
+                      {style.mark}
+                    </button>
+                  );
+                })}
+
+                <div className="text-right font-mono text-[12px] tabular">
+                  <span className="text-[var(--text-faint)]">
+                    {ay === null ? "—" : `P${ay}`}
+                  </span>
+                  <span className="text-[var(--text-faint)] mx-1">→</span>
+                  <span
+                    className={
+                      by === null ? "text-[var(--hold)]" : "text-[var(--yield)]"
+                    }
+                  >
+                    {by === null ? "—" : `P${by}`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <p className="mt-4 pt-4 border-t border-[var(--line-soft)] text-xs text-[var(--text-dim)] leading-relaxed max-w-3xl">
+        <span className="text-[var(--hold)]">scripts/check_regressions.py</span>{" "}
+        runs on every push via GitHub Actions and compares against this
+        committed result. Attempt 1 fails that gate; attempt 2 passes it. The
+        gate is cell-level, not aggregate — a run whose overall score improves
+        while any single scenario regresses is still blocked.
+      </p>
+    </GlowCard>
   );
 }
