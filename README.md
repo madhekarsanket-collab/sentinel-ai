@@ -5,7 +5,7 @@
 > **Team:** Dark Fantasy
 > **Live dashboard → [sentinel-ai-eta-one.vercel.app](https://sentinel-ai-eta-one.vercel.app)**
 
-![Reliability report]("C:\Users\SANKET MADHEKAR\Downloads\Reports_OOSC_sentinel_ai.png")
+![Reliability report](docs/screenshot-report.png)
 
 Every number, trace and violation in the dashboard is real engine output.
 Nothing in the UI is mocked or hand-written.
