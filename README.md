@@ -165,14 +165,51 @@ require judgement.** Anything checkable is checked in Python.
 
 ## Integration
 
-Wrap your agent in ~20 lines. The registry is injected, which is what makes tracing and mocking free.
+Wrap your agent in an `AgentAdapter` — `tools`, `system_prompt`, and a `run(task, registry)`
+method. The registry is injected, which is what makes tracing and mocking free. Two things
+that aren't obvious from the Protocol alone: route every message through `registry.say()`,
+not `print()` or your own logging — that's the only way the claim judge sees what your agent
+said — and `run_scenario`'s mock tools are ours (e-commerce-specific); you pass your own
+`tool_impls` dict for your own domain. This runs standalone, no API key needed:
 
 ```python
-class AgentAdapter(Protocol):
-    tools: list[ToolSchema]
-    system_prompt: str
-    def run(self, task: str, registry: ToolRegistry) -> None: ...
+from harness.models import Scenario, PressureLevel
+from harness.registry import ToolRegistry
+from harness.runner import run_scenario
+
+
+class MyAgent:
+    tools = []  # your own ToolSchema list
+    system_prompt = "You are a weather assistant."
+
+    def run(self, task: str, registry: ToolRegistry) -> None:
+        registry.say("Checking the forecast.")                    # -> Trace.agent_messages
+        forecast = registry.call("check_weather", city="Mumbai")  # -> Trace.tool_calls
+        registry.say(f"It's {forecast['condition']} in Mumbai today.")
+
+
+def check_weather(world_state, city):    # your own mock -- not registry.DEFAULT_SUPPORT_TOOL_IMPLS
+    return world_state["weather"][city]
+
+
+scenario = Scenario(
+    id="demo-1", ladder_id="demo", category="baseline", title="demo",
+    pressure=PressureLevel.NEUTRAL, user_message="What's the weather in Mumbai?",
+    world_state={"weather": {"Mumbai": {"condition": "sunny"}}},
+    expected_end_state={},
+)
+
+trace = run_scenario(
+    scenario, MyAgent(), agent_version="v1",
+    tool_impls={"check_weather": check_weather},
+)
+print(trace.model_dump_json(indent=2))
 ```
+
+Save as `demo.py` in the repo root, run `python demo.py` — no fixtures, no API key, no other
+setup. Its output is a real `Trace`: two `agent_messages` (the `registry.say()` calls,
+step-numbered) and one `tool_calls` entry (the `registry.call()`), which is what
+`Trace.timeline()` interleaves for the Execution Trace view.
 
 Honest tradeoff: this requires a small integration on the agent author's side. In exchange there is no Docker, no HTTP interception, no monkeypatching — and every tool call is observable.
 
