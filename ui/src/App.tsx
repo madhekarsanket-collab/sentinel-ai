@@ -53,17 +53,23 @@ function toHash(r: Route) {
 const ALL_RESULTS: Result[] = (() => {
   const out: Result[] = [...data.results];
   const seen = new Set(out.map((r) => r.scenario_id));
-  try {
-    const demoCards = (demoState as { scorecards: Record<string, { results: Result[] }> })
-      .scorecards;
-    for (const card of Object.values(demoCards)) {
-      for (const r of card.results) {
-        if (!seen.has(r.scenario_id)) {
-          seen.add(r.scenario_id);
-          out.push(r);
-        }
+
+  const push = (results?: Result[]) => {
+    for (const r of results ?? []) {
+      if (!seen.has(r.scenario_id)) {
+        seen.add(r.scenario_id);
+        out.push(r);
       }
     }
+  };
+
+  try {
+    const ds = demoState as {
+      scorecards?: Record<string, { results: Result[] }>;
+      round2_patch?: { scorecard?: { results: Result[] } };
+    };
+    for (const card of Object.values(ds.scorecards ?? {})) push(card.results);
+    push(ds.round2_patch?.scorecard?.results);
   } catch {
     /* demo state absent — reports-only routing still works */
   }

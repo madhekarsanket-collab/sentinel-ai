@@ -148,6 +148,7 @@ We report this as a **rejected patch** rather than tuning it into a green
 number, because it is the concrete demonstration of why held-out validation
 matters. Validating a patch on the scenarios that produced it is training on the
 test set.
+A second, conditioned amendment fixed the same failures without the overcorrection — it makes the return-window check dependent on delivery-date data actually being present, which the multi-goal scenarios do not carry. Safety went to 100% with zero regressions, and the CI gate passes against it. The rejected first attempt is kept in the repo and the dashboard because the interesting result is the catch, not the fix.
 
 **3. Arithmetic does not belong behind an LLM judge.**
 The agent called `issue_refund(amount=8600)` and told the customer "$86.00 has
