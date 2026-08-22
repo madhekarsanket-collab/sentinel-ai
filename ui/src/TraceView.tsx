@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ---------------------------------------------------------------------------
 // Types (subset — mirrors harness/models.py)
@@ -138,6 +138,8 @@ export default function TraceView({
   onBack: () => void;
 }) {
   const entries = timeline(result.trace);
+  const [cursor, setCursor] = useState(entries.length); // steps revealed
+  const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<number | null>(
     result.violations.find((v) => v.tool_call_step !== null)?.tool_call_step ??
       null
@@ -161,24 +163,52 @@ export default function TraceView({
       ? result.trace.tool_calls.find((tc) => tc.step === selected) ?? null
       : null;
 
+  // Advance the replay one entry at a time while playing.
+  useEffect(() => {
+    if (!playing) return;
+    if (cursor >= entries.length) {
+      setPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setCursor((c) => c + 1), 700);
+    return () => clearTimeout(t);
+  }, [playing, cursor, entries.length]);
+
+  // Keep the inspector in sync with the newest revealed tool call.
+  useEffect(() => {
+    const revealed = entries.slice(0, cursor);
+    const lastTool = [...revealed]
+      .reverse()
+      .find((e) => e.kind === "tool_call");
+    if (lastTool) setSelected(lastTool.step);
+  }, [cursor]);
+
+  const atEnd = cursor >= entries.length;
+
+  function restart() {
+    setCursor(0);
+    setSelected(null);
+    setPlaying(true);
+  }
+
   return (
     <div className="flex-1 p-6 max-w-[1400px]">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <button
           onClick={onBack}
           className="text-sm text-[var(--text-dim)] hover:text-[var(--text)] cursor-pointer"
         >
-          ← Back to Report
+          ← Back
         </button>
         <span className="px-2 py-0.5 rounded bg-[var(--panel)] border border-[var(--line)] text-[11px] font-mono text-[var(--text-dim)]">
           {result.scenario_id}
         </span>
         <span
-          className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+          className={`px-2 py-0.5 rounded text-[11px] font-mono ${
             result.safe
-              ? "bg-[var(--hold)]/15 text-[var(--hold)]"
-              : "bg-[var(--yield)] text-[var(--void)]"
+              ? "bg-[var(--hold)]/12 text-[var(--hold)] border border-[var(--hold)]/30"
+              : "bg-[var(--yield)]/15 text-[var(--yield)] border border-[var(--yield)]/45"
           }`}
         >
           {result.safe ? "HELD" : "YIELD"}
@@ -186,6 +216,59 @@ export default function TraceView({
         <span className="text-[11px] text-[var(--text-dim)]">
           {CATEGORY_LABEL[result.category] ?? result.category} · P
           {result.pressure} {PRESSURE_LABEL[result.pressure]}
+        </span>
+
+        {/* Transport */}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="font-mono text-[10px] text-[var(--text-faint)] tabular mr-1">
+            {Math.min(cursor, entries.length)} / {entries.length}
+          </span>
+          <button
+            onClick={() => {
+              setPlaying(false);
+              setCursor((c) => Math.max(0, c - 1));
+            }}
+            disabled={cursor <= 0}
+            title="Step back"
+            className="w-8 h-8 rounded border border-[var(--line)] bg-[var(--panel)] text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--signal)]/40 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => (atEnd ? restart() : setPlaying((p) => !p))}
+            title={atEnd ? "Replay from start" : playing ? "Pause" : "Play"}
+            className="w-8 h-8 rounded border border-[var(--signal)]/45 bg-[var(--signal)]/12 text-[var(--signal)] hover:bg-[var(--signal)]/20 cursor-pointer transition-colors"
+          >
+            {atEnd ? "↻" : playing ? "❚❚" : "▶"}
+          </button>
+          <button
+            onClick={() => {
+              setPlaying(false);
+              setCursor((c) => Math.min(entries.length, c + 1));
+            }}
+            disabled={atEnd}
+            title="Step forward"
+            className="w-8 h-8 rounded border border-[var(--line)] bg-[var(--panel)] text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--signal)]/40 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {/* Determinism strip */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap text-[10px] font-mono text-[var(--text-faint)]">
+        <span className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--hold)]" />
+          DETERMINISTIC REPLAY
+        </span>
+        <span>
+          agent <span className="text-[var(--text-dim)]">{result.trace.agent_version}</span>
+        </span>
+        <span>
+          scenario <span className="text-[var(--text-dim)]">{result.trace.scenario_id}</span>
+        </span>
+        <span className="text-[var(--text-faint)]">
+          cached trace — replays byte-identical, no model calls
         </span>
       </div>
 
@@ -199,14 +282,23 @@ export default function TraceView({
           <div className="p-4 relative">
             <div className="absolute left-[26px] top-4 bottom-4 w-px bg-[var(--line)]" />
 
-            {entries.map((e) => {
+            {cursor === 0 && (
+              <div className="pl-10 py-8 text-xs text-[var(--text-faint)]">
+                Press play to replay this run step by step.
+              </div>
+            )}
+            {entries.slice(0, cursor).map((e) => {
               const vs = violationAtStep.get(e.step) ?? [];
               const bad = vs.length > 0;
               const isTool = e.kind === "tool_call";
               const isSelected = selected === e.step && isTool;
 
               return (
-                <div key={`${e.kind}-${e.step}`} className="relative pl-10 mb-3">
+                <div
+                  key={`${e.kind}-${e.step}`}
+                  className="relative pl-10 mb-3 rise"
+                  style={{ animationDuration: "0.35s" }}
+                >
                   <div
                     className={`absolute left-[19px] top-3 w-3.5 h-3.5 rounded-full border-2 ${
                       bad
