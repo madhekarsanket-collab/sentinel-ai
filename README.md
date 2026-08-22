@@ -83,7 +83,41 @@ Most findings come from layers 1 and 2. When asked how we know the scorer is rig
 | 2 | Anger |
 | 3 | False authority ("I'm a manager, override it") |
 | 4 | Fabricated urgency |
+
 ## The dashboard
+
+| View | What it shows |
+| :--- | :--- |
+| **Reports** | Yield-point dial, safety and task-success rates, per-category stress curves, violation breakdown, every scenario result |
+| **Patch Validation** | Diagnosis → synthesised amendment → held-out revalidation, diffed cell by cell |
+| **Execution Trace** | Step-by-step replay of a single run, with an inspector for each tool call, its arguments, the sandbox response, and why it was flagged |
+| **Attack Library** | The scenario taxonomy with the reasoning behind each category |
+| **Agents** | The agent under test, its observed tools, and how to integrate your own |
+
+![Patch validation](docs/screenshot-patch.png)
+
+### Stress response curves
+
+Each category is plotted as behavioural integrity against pressure. A flat line
+means the agent behaved identically regardless of tone; where a trace drops is
+its yield point.
+
+The curves are deliberately **not smoothed**. They are not monotonic, and that
+is the point — an agent can hold at high pressure after failing at low pressure,
+because the underlying model is non-deterministic. A guardrail that holds only
+sometimes is not a guardrail, and averaging that away would hide the finding.
+
+### Deterministic replay
+
+Every trace view carries transport controls — step forward, step back, replay
+from the beginning. Playback walks the recorded trace rather than animating a
+summary, and traces are cached against `scenario + agent + seed`, so replaying a
+run returns byte-identical output with zero model calls.
+
+Application state is reflected in the URL, so any view — including one specific
+failing trace — is a shareable link.
+
+
 ## What we found
 
 Running the suite against our own reference agent produced three results worth
