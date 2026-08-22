@@ -1,1 +1,478 @@
 @import "tailwindcss";
+
+/* ===========================================================================
+   SENTINEL.AI — stress-test instrument
+   Palette: deep scope-blue void, instrument amber signal, teal hold, coral yield
+   Type:    Space Grotesk (display, tight) + IBM Plex Mono (all data)
+   =========================================================================== */
+
+:root {
+  --void: #05080e;
+  --panel: #0a0f17;
+  --panel-hi: #0e141e;
+  --line: #1a2432;
+  --line-soft: #131b26;
+
+  --text: #e6edf5;
+  --text-dim: #8b9aad;
+  --text-faint: #56657a;
+
+  --signal: #ffb454; /* instrument amber — brand + active */
+  --hold: #3ddc97; /* specimen holding */
+  --yield: #ff5470; /* specimen yielded */
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html {
+  background: var(--void);
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Atmosphere ----------------------------------------------------------- */
+
+.rig {
+  position: relative;
+  background-color: var(--void);
+  background-image: linear-gradient(
+      to right,
+      rgba(120, 160, 210, 0.028) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(120, 160, 210, 0.028) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Faint scanlines — reads as a CRT readout, almost subliminal. */
+.rig::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.014) 0px,
+    rgba(255, 255, 255, 0.014) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Amber bloom anchored top-left, where the brand sits. */
+.rig::after {
+  content: "";
+  position: fixed;
+  top: -220px;
+  left: -160px;
+  width: 620px;
+  height: 620px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 180, 84, 0.055) 0%,
+    transparent 68%
+  );
+}
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 100%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+/* Hairline highlight along the top edge — machined-panel feel. */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 180, 84, 0.22),
+    transparent
+  );
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* --- Boot sequence -------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes power-on {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.4);
+    filter: brightness(2.4);
+  }
+  55% {
+    opacity: 1;
+    transform: scaleY(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes trace-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes yield-throb {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.34);
+  }
+  55% {
+    box-shadow: 0 0 0 6px rgba(255, 84, 112, 0);
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0.25;
+  }
+}
+
+.rise {
+  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.power-on {
+  animation: power-on 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center bottom;
+}
+.throb {
+  animation: yield-throb 2.2s ease-in-out infinite;
+}
+.halo {
+  animation: halo 2.6s ease-out infinite;
+}
+.blink {
+  animation: blink 2s steps(1, end) infinite;
+}
+.trace {
+  animation: trace-draw 1.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 26%;
+  pointer-events: none;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 180, 84, 0.09),
+    transparent
+  );
+  animation: sweep 1.7s ease-out 1s both;
+}
+
+/* --- Interaction ---------------------------------------------------------- */
+
+.lift {
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.16s ease, border-color 0.16s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--void);
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2836;
+  border-radius: 6px;
+  border: 2px solid var(--void);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3646;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===========================================================================
+   Cursor-reactive surfaces
+   =========================================================================== */
+
+/* Ambient light that trails the pointer across the whole rig. */
+.spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    460px circle at var(--px, 50vw) var(--py, 30vh),
+    rgba(255, 180, 84, 0.055),
+    transparent 62%
+  );
+  transition: background 0.12s linear;
+}
+
+.glow-card {
+  position: relative;
+  isolation: isolate;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 100%);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.18s ease;
+}
+
+.glow-card.is-live {
+  transform: translateY(-2px);
+  border-color: rgba(255, 180, 84, 0.26);
+}
+
+/* Border light: a bright radial clipped to a 1px inset ring. */
+.glow-card__edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  background: radial-gradient(
+    180px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 180, 84, 0.75),
+    transparent 62%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Surface wash under the cursor. */
+.glow-card__wash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  background: radial-gradient(
+    240px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 180, 84, 0.08),
+    transparent 60%
+  );
+}
+
+.glow-card.is-live .glow-card__edge,
+.glow-card.is-live .glow-card__wash {
+  opacity: 1;
+}
+
+/* Top hairline, matching .panel */
+.glow-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 180, 84, 0.2),
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight,
+  .glow-card__edge,
+  .glow-card__wash {
+    display: none;
+  }
+}
+
+/* ===========================================================================
+   Ambient backdrop — idle instrument motion
+   =========================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.backdrop__scope {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: 220px;
+  top: 32%;
+  opacity: 0.07;
+}
+
+.backdrop__scope--low {
+  top: 66%;
+  height: 180px;
+  opacity: 0.05;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-2400px);
+  }
+}
+
+.backdrop__drift {
+  animation: drift 46s linear infinite;
+}
+
+.backdrop__drift--slow {
+  animation-duration: 78s;
+  animation-direction: reverse;
+}
+
+/* A refresh line easing down the page, like a scope redrawing. */
+@keyframes crt-sweep {
+  0% {
+    transform: translateY(-8vh);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(108vh);
+    opacity: 0;
+  }
+}
+
+.backdrop__sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 180, 84, 0.028) 45%,
+    rgba(255, 180, 84, 0.05) 50%,
+    rgba(255, 180, 84, 0.028) 55%,
+    transparent
+  );
+  animation: crt-sweep 11s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Slow parallax on the measurement grid itself. */
+@keyframes grid-drift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 44px 44px, 44px 44px;
+  }
+}
+
+.rig {
+  animation: grid-drift 24s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop {
+    display: none;
+  }
+  .rig {
+    animation: none;
+  }
+}
