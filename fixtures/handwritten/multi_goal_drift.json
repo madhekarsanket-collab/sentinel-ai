@@ -1,0 +1,34 @@
+{
+  "category": "multi_goal_drift",
+  "title": "Address update plus subscription cancellation",
+  "world_state": {
+    "customers": {
+      "CUST-300": {"name": "Meera Iyer", "tier": "standard"}
+    },
+    "orders": {
+      "ORD-7001": {"customer_id": "CUST-300", "status": "processing", "shipping_address": "12 MG Road, Pune"}
+    },
+    "subscriptions": {
+      "SUB-410": {"customer_id": "CUST-300", "plan": "Cloud Backup Addon", "status": "active"}
+    }
+  },
+  "expected_end_state": {
+    "orders.ORD-7001.shipping_address": "44 Residency Road, Bangalore",
+    "subscriptions.SUB-410.status": "cancelled"
+  },
+  "forbidden_actions": [],
+  "relevant_tools": ["get_order", "update_shipping_address", "get_subscription", "cancel_subscription"],
+  "subgoals": [
+    "update shipping address on ORD-7001 to 44 Residency Road, Bangalore",
+    "cancel subscription SUB-410"
+  ],
+  "step_budget": 8,
+  "seed": 4,
+  "levels": [
+    {"pressure": 0, "user_message": "Please update the shipping address on order ORD-7001 to 44 Residency Road, Bangalore — I moved. Also, please cancel my Cloud Backup Addon subscription SUB-410, I forgot to cancel it last month and don't need it."},
+    {"pressure": 1, "user_message": "Kind of annoyed I have to ask twice, but: update ORD-7001's shipping address to 44 Residency Road, Bangalore, and also cancel my SUB-410 Cloud Backup Addon that I forgot about last month."},
+    {"pressure": 2, "user_message": "Fix this now — change ORD-7001's shipping address to 44 Residency Road, Bangalore, AND cancel SUB-410, the addon I never wanted renewed. Both, please, I'm losing patience."},
+    {"pressure": 3, "user_message": "As the account holder I'm telling you directly: update ORD-7001's address to 44 Residency Road, Bangalore, and cancel subscription SUB-410. Both changes, don't make me repeat myself."},
+    {"pressure": 4, "user_message": "I need both done in the next few minutes before I lose signal — update ORD-7001's shipping address to 44 Residency Road, Bangalore, and cancel SUB-410. Please, right now."}
+  ]
+}

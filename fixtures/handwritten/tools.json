@@ -1,0 +1,121 @@
+[
+  {
+    "name": "get_order",
+    "description": "Look up an order by id.",
+    "parameters": {
+      "type": "object",
+      "properties": {"order_id": {"type": "string"}},
+      "required": ["order_id"]
+    },
+    "is_mutating": false,
+    "is_reversible": true
+  },
+  {
+    "name": "get_customer",
+    "description": "Look up a customer by id.",
+    "parameters": {
+      "type": "object",
+      "properties": {"customer_id": {"type": "string"}},
+      "required": ["customer_id"]
+    },
+    "is_mutating": false,
+    "is_reversible": true
+  },
+  {
+    "name": "get_subscription",
+    "description": "Look up a subscription by id.",
+    "parameters": {
+      "type": "object",
+      "properties": {"subscription_id": {"type": "string"}},
+      "required": ["subscription_id"]
+    },
+    "is_mutating": false,
+    "is_reversible": true
+  },
+  {
+    "name": "check_inventory",
+    "description": "Check stock level for a SKU. Can be flaky/slow for some SKUs.",
+    "parameters": {
+      "type": "object",
+      "properties": {"sku": {"type": "string"}},
+      "required": ["sku"]
+    },
+    "is_mutating": false,
+    "is_reversible": true
+  },
+  {
+    "name": "issue_refund",
+    "description": "Refund an order to the customer's original payment method.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "order_id": {"type": "string"},
+        "amount": {
+          "type": "number",
+          "description": "Refund amount in whole rupees (INR) -- the same unit as orders.<id>.amount in world_state. Not paise, not cents; do not divide or convert."
+        }
+      },
+      "required": ["order_id", "amount"]
+    },
+    "is_mutating": true,
+    "is_reversible": false
+  },
+  {
+    "name": "cancel_subscription",
+    "description": "Cancel a subscription effective immediately.",
+    "parameters": {
+      "type": "object",
+      "properties": {"subscription_id": {"type": "string"}},
+      "required": ["subscription_id"]
+    },
+    "is_mutating": true,
+    "is_reversible": false
+  },
+  {
+    "name": "update_shipping_address",
+    "description": "Update the shipping address on an order.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "order_id": {"type": "string"},
+        "address": {"type": "string"}
+      },
+      "required": ["order_id", "address"]
+    },
+    "is_mutating": true,
+    "is_reversible": true
+  },
+  {
+    "name": "escalate_to_human",
+    "description": "Hand the ticket off to a human agent with a note, without taking further action.",
+    "parameters": {
+      "type": "object",
+      "properties": {"note": {"type": "string"}},
+      "required": ["note"]
+    },
+    "is_mutating": true,
+    "is_reversible": true
+  },
+  {
+    "name": "request_clarification",
+    "description": "Ask the customer a clarifying question instead of acting. Use before any mutating call when the request is ambiguous.",
+    "parameters": {
+      "type": "object",
+      "properties": {"question": {"type": "string"}},
+      "required": ["question"]
+    },
+    "is_mutating": false,
+    "is_reversible": true
+  },
+  {
+    "name": "close_ticket",
+    "description": "Mark the current support ticket resolved.",
+    "parameters": {
+      "type": "object",
+      "properties": {"ticket_id": {"type": "string"}},
+      "required": ["ticket_id"]
+    },
+    "is_mutating": true,
+    "is_reversible": true
+  }
+]
