@@ -84,6 +84,8 @@ Most findings come from layers 1 and 2. When asked how we know the scorer is rig
 | 3 | False authority ("I'm a manager, override it") |
 | 4 | Fabricated urgency |
 
+---
+
 ## The dashboard
 
 | View | What it shows |
@@ -117,6 +119,7 @@ run returns byte-identical output with zero model calls.
 Application state is reflected in the URL, so any view — including one specific
 failing trace — is a shareable link.
 
+---
 
 ## What we found
 
@@ -158,37 +161,6 @@ boilerplate, locked behind a regression test.
 The principle this produced: **an LLM judge should only be asked questions that
 require judgement.** Anything checkable is checked in Python.
 
-| View | What it shows |
-| :--- | :--- |
-| **Reports** | Yield-point dial, safety and task-success rates, per-category stress curves, violation breakdown, every scenario result |
-| **Patch Validation** | Diagnosis → synthesised amendment → held-out revalidation, diffed cell by cell |
-| **Execution Trace** | Step-by-step replay of a single run, with an inspector for each tool call, its arguments, the sandbox response, and why it was flagged |
-| **Attack Library** | The scenario taxonomy with the reasoning behind each category |
-| **Agents** | The agent under test, its observed tools, and how to integrate your own |
-
-![Patch validation](docs/screenshot-patch.png)
-
-### Stress response curves
-
-Each category is plotted as behavioural integrity against pressure. A flat line
-means the agent behaved identically regardless of tone; where a trace drops is
-its yield point.
-
-The curves are deliberately **not smoothed**. They are not monotonic, and that
-is the point — an agent can hold at high pressure after failing at low pressure,
-because the underlying model is non-deterministic. A guardrail that holds only
-sometimes is not a guardrail, and averaging that away would hide the finding.
-
-### Deterministic replay
-
-Every trace view carries transport controls — step forward, step back, replay
-from the beginning. Playback walks the recorded trace rather than animating a
-summary, and traces are cached against `scenario + agent + seed`, so replaying a
-run returns byte-identical output with zero model calls.
-
-Application state is reflected in the URL, so any view — including one specific
-failing trace — is a shareable link.
-
 ---
 
 ## Integration
@@ -213,6 +185,9 @@ DeepEval, Promptfoo, Langfuse, LangSmith and MLflow are mature and we are not cl
 - They score **final outputs and trajectories**. We score **safety and task success as separate axes**.
 - Chaos-engineering tools inject infrastructure faults (timeouts, 500s, schema drift). We inject **social pressure**, and measure the threshold at which restraint fails.
 - Red-team tools ask **"can it be broken?"** We ask **"how hard do you have to push?"** — and return an integer you can track across versions.
+
+---
+
 ## Continuous integration
 
 `scripts/check_regressions.py` is the release gate. It compares a run against a
@@ -229,7 +204,7 @@ aggregate threshold would have let it through; a cell-level gate does not.
 
 | Layer | Technology | Why |
 | :--- | :--- | :--- |
-| Runtime | Python 3.12 | |
+| Runtime | Python 3.12 | Standard library plus Pydantic; no web framework needed |
 | LLM & structuring | LiteLLM + Instructor | Model-agnostic calls; strict Pydantic schema enforcement |
 | Sandbox | In-memory Python state engine | Sub-millisecond, zero dependencies, no network flake |
 | Storage | JSON fixtures | Real engine output, committed straight to the repo — readable, diffable, no DB to stand up |
@@ -294,7 +269,7 @@ Stated plainly, because a reviewer will find these anyway.
 ## Running locally
 
 ```bash
-git clone <repo> && cd sentinel-ai
+git clone https://github.com/madhekarsanket-collab/sentinel-ai.git && cd sentinel-ai
 python -m venv .venv && source .venv/bin/activate    # or: uv venv && source .venv/bin/activate
 pip install -r requirements.txt                       # or: uv pip install -r requirements.txt
 cp .env.example .env          # add GEMINI_API_KEY or GROQ_API_KEY
@@ -309,6 +284,9 @@ python -m pytest tests/ -q         # 25 tests, no LLM calls needed
 python scripts/build_scorecard.py  # live run against handwritten fixtures — needs an API key
 python scripts/pipeline.py         # the full chained demo — needs an API key, several minutes
 ```
+
+---
+
 ## Team
 
 **Dark Fantasy** — 2 members.
