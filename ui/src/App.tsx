@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import scorecard from "./fixtures/scorecard.json";
+import demoState from "./fixtures/demo_state.json";
 import TraceView from "./TraceView";
 import StressPlot from "./StressPlot";
 import YieldDial from "./YieldDial";
@@ -23,6 +24,52 @@ type Scorecard = {
 const data = scorecard as Scorecard;
 
 /** Animate a number from 0 to `to` once on mount. */
+const PAGES = ["Agents", "Test Runs", "Reports", "Patch Validation", "Attack Library"];
+
+/** URL hash <-> app state. Format: #/<page-slug>[/trace/<scenario_id>] */
+const slug = (p: string) => p.toLowerCase().replace(/ /g, "-");
+const fromSlug = (s: string) => PAGES.find((p) => slug(p) === s) ?? "Reports";
+
+type Route = { nav: string; scenarioId: string | null };
+
+function parseHash(): Route {
+  const raw = window.location.hash.replace(/^#\/?/, "");
+  if (!raw) return { nav: "Reports", scenarioId: null };
+  const [page, kind, id] = raw.split("/");
+  return {
+    nav: fromSlug(page),
+    scenarioId: kind === "trace" && id ? decodeURIComponent(id) : null,
+  };
+}
+
+function toHash(r: Route) {
+  const base = `#/${slug(r.nav)}`;
+  return r.scenarioId
+    ? `${base}/trace/${encodeURIComponent(r.scenarioId)}`
+    : base;
+}
+
+/** Every result across every embedded run, so a trace URL can always resolve. */
+const ALL_RESULTS: Result[] = (() => {
+  const out: Result[] = [...data.results];
+  const seen = new Set(out.map((r) => r.scenario_id));
+  try {
+    const demoCards = (demoState as { scorecards: Record<string, { results: Result[] }> })
+      .scorecards;
+    for (const card of Object.values(demoCards)) {
+      for (const r of card.results) {
+        if (!seen.has(r.scenario_id)) {
+          seen.add(r.scenario_id);
+          out.push(r);
+        }
+      }
+    }
+  } catch {
+    /* demo state absent — reports-only routing still works */
+  }
+  return out;
+})();
+
 function useCountUp(to: number, ms = 900, delay = 0) {
   const [n, setN] = useState(0);
   useEffect(() => {
@@ -555,9 +602,37 @@ function AttackLibraryPage() {
 // ---------------------------------------------------------------------------
 
 export default function App() {
-  const [selected, setSelected] = useState<Result | null>(null);
-  const [nav, setNav] = useState("Reports");
+  const initial = parseHash();
+  const [nav, setNav] = useState(initial.nav);
+  const [selected, setSelected] = useState<Result | null>(
+    initial.scenarioId
+      ? ALL_RESULTS.find((r) => r.scenario_id === initial.scenarioId) ?? null
+      : null
+  );
   useGlobalPointer();
+
+  // Push a history entry whenever the view changes, so Back works.
+  useEffect(() => {
+    const next = toHash({ nav, scenarioId: selected?.scenario_id ?? null });
+    if (window.location.hash !== next) {
+      window.history.pushState(null, "", next);
+    }
+  }, [nav, selected]);
+
+  // Restore state when the user navigates with Back/Forward.
+  useEffect(() => {
+    function onPop() {
+      const r = parseHash();
+      setNav(r.nav);
+      setSelected(
+        r.scenarioId
+          ? ALL_RESULTS.find((x) => x.scenario_id === r.scenarioId) ?? null
+          : null
+      );
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   function go(page: string) {
     setSelected(null);
@@ -602,7 +677,7 @@ export default function App() {
 
         {/* Main */}
         {selected ? (
-          <TraceView result={selected} onBack={() => setSelected(null)} />
+          <TraceView result={selected} onBack={() => window.history.back()} />
         ) : nav !== "Reports" ? (
           <main
             className={`flex-1 p-7 ${
