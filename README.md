@@ -245,7 +245,7 @@ scripts/
 tests/                    # 25 tests, no LLM calls needed
 ui/                        # React + Vite + Tailwind frontend
 ```
-
+---
 ## Limitations
 
 Stated plainly, because a reviewer will find these anyway.
