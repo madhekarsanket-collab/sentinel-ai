@@ -109,56 +109,52 @@ DeepEval, Promptfoo, Langfuse, LangSmith and MLflow are mature and we are not cl
 
 | Layer | Technology | Why |
 | :--- | :--- | :--- |
-| Backend | FastAPI + Python 3.12 | Native asyncio for parallel scenario execution |
+| Runtime | Python 3.12 | |
 | LLM & structuring | LiteLLM + Instructor | Model-agnostic calls; strict Pydantic schema enforcement |
 | Sandbox | In-memory Python state engine | Sub-millisecond, zero dependencies, no network flake |
-| Storage | SQLite + SQLModel | One Pydantic layer, a `.db` file you can pass around |
-| Frontend | React (Vite) + Tailwind + shadcn/ui | Scorecard, ladder chart, trace replay |
+| Storage | JSON fixtures | Real engine output, committed straight to the repo — readable, diffable, no DB to stand up |
+| Frontend | React (Vite) + Tailwind | Scorecard, ladder chart, trace replay |
 
 ---
 
 ## Repository layout
 
-Status as of 2026-08-22 — see [CLAUDE.md](CLAUDE.md) for the full session-by-session detail.
-
 ```
 harness/
-  models.py          # frozen Pydantic contracts — DONE, everyone codes against it
-  generator.py       # [A] tool schemas -> ScenarioLadder via Instructor — DONE, live-tested
-  validator.py       # [A] rejects incoherent scenarios before they reach the runner — DONE
-  registry.py        # [B]'s file; B hadn't started it, so A built a working starter — DONE,
-                      #   read before assuming it's final
-  runner.py          # same as above — DONE (starter)
+  models.py              # Pydantic contracts shared by every other module
+  generator.py           # tool schemas + system prompt -> ScenarioLadder, one LLM call per ladder
+  validator.py           # rejects incoherent or self-contradictory scenarios before they run
+  registry.py            # in-memory ToolRegistry — mock dispatch, full call tracing
+  runner.py              # Scenario -> Trace
+  replay_cache.py        # caches a Trace so replay is byte-identical, not just likely
   scoring/
-    endstate.py      # dotted-path dict diff — DONE (starter)
-    rules.py         # loops, forbidden actions, budget, pre-clarify mutation,
-                      #   currency/unit consistency — DONE (starter)
-    judge.py         # LLM — unsupported claims only — DONE (starter)
-  patcher.py         # [A] trace -> prompt amendment -> held-out revalidation — DONE
-  report.py          # Trace[] -> Scorecard — DONE (starter)
-  replay_cache.py     # deterministic replay by caching a Trace, not hoping the LLM
-                      #   provider's seed param is reproducible — DONE
-  api.py             # NOT BUILT — nobody owns this yet. The frontend currently reads
-                      #   fixtures/*.json directly instead.
+    endstate.py          # dotted-path dict diff
+    rules.py             # loops, forbidden actions, step budget, mutation-before-clarify,
+                          #   currency/unit consistency
+    judge.py             # LLM — unsupported-claim detection only
+  patcher.py              # trace -> prompt amendment -> held-out revalidation
+  report.py              # Trace[] -> Scorecard
   agents/
-    adapter.py        # the AgentAdapter Protocol — DONE
-    reference_agent.py # a minimal generic LLM tool-caller, NOT the real agent under
-                      #   test — a stand-in built by A so real engine output could exist
-                      #   before C's agent did
-    support_agent.py # [C]'s real agent under test (v1 and v2) — NOT BUILT YET
+    adapter.py            # the AgentAdapter Protocol
+    reference_agent.py    # minimal LLM tool-calling agent used to produce real engine output
 fixtures/
-  handwritten/       # 5 hand-written scenarios, one per category — DONE
-  generated/         # bulk-generated scenarios via scripts/generate_scenarios.py — DONE
-  scorecard.json     # real engine output from scripts/build_scorecard.py
-  demo_state.json    # real chained generate->patch->held-out-revalidate output,
-                      #   from scripts/pipeline.py
+  handwritten/           # 5 hand-written pressure ladders, one per category
+  generated/              # bulk-generated ladders via scripts/generate_scenarios.py
+  scorecard.json          # real engine output
+  demo_state.json         # full chained generate -> patch -> held-out-revalidate result
 scripts/
-  build_scorecard.py    # runs reference_agent.py against fixtures/handwritten/
-  generate_scenarios.py # bulk-generates more ladders into fixtures/generated/
-  pipeline.py            # the full chained demo: generate/load -> split -> v1 ->
-                      #   diagnose -> patch -> v2 -> compare -> demo_state.json
-tests/               # 21 tests, no LLM calls needed
+  build_scorecard.py      # runs the reference agent against the handwritten fixtures
+  generate_scenarios.py   # bulk-generates more ladders
+  pipeline.py              # the full chained demo, end to end
+  check_regressions.py    # CI regression gate
+tests/                    # 25 tests, no LLM calls needed
+ui/                        # React + Vite + Tailwind frontend
 ```
+
+## Limitations
+
+- No `api.py` / backend service — the UI reads `fixtures/scorecard.json` and
+  `fixtures/demo_state.json` directly instead of calling a live API.
 
 ---
 
@@ -172,14 +168,11 @@ cp .env.example .env          # add GEMINI_API_KEY or GROQ_API_KEY
 cd ui && npm install && npm run dev
 ```
 
-There's no `api.py` yet (see the layout above) — the UI reads `fixtures/scorecard.json` and
-`fixtures/demo_state.json` directly rather than calling a backend service.
-
 ### Self-checks
 
 ```bash
 python -m harness.validator        # validates every fixture in fixtures/handwritten/ and fixtures/generated/
-python -m pytest tests/ -q         # 21 tests, no LLM calls needed
+python -m pytest tests/ -q         # 25 tests, no LLM calls needed
 python scripts/build_scorecard.py  # live run against handwritten fixtures — needs an API key
 python scripts/pipeline.py         # the full chained demo — needs an API key, several minutes
 ```

@@ -11,6 +11,12 @@ match already-built UI screens. If you see "YIELDPOINT" anywhere, it's stale —
 
 ## Team ownership
 
+**Two-person team — A and B, no C.** An early planning doc referenced a third role
+("Person C" building `agents/support_agent.py`); B confirmed on 2026-08-22 that's stale —
+the team is just the two of them. `agents/reference_agent.py` (a generic LLM tool-caller,
+not a polished agent under test) is what's actually there, and nobody is currently assigned
+to build a more polished replacement — treat that as an open gap, not someone else's task.
+
 - **Person A** (this session's work): `models.py`, `fixtures/handwritten/`, `generator.py`,
   `validator.py`, `patcher.py`. Frozen contracts + scenario generation/validation/patching.
   Also built a full starter execution harness (below) to unblock Person B, and the chained
@@ -19,11 +25,8 @@ match already-built UI screens. If you see "YIELDPOINT" anywhere, it's stale —
   had not started the execution harness, so Person A built a working starter for all of it
   (see "What's built" below) — intended to be extended/replaced by B, not a claim of
   ownership. Read `harness/registry.py` and `harness/runner.py` before assuming they're final.
-- **Person C**: `agents/support_agent.py` (the real agent under test, v1 and v2), and
-  apparently the Stitch UI screens. Not built as of 2026-08-22 — `agents/reference_agent.py`
-  is an explicit placeholder standing in for it, not the real thing.
-- **Nobody owns `api.py` yet.** Nothing currently exposes this as a running service; every
-  script here is invoked directly.
+- **Nobody owns `api.py` yet.** Nothing currently exposes this as a running service; the UI
+  reads `fixtures/*.json` directly instead.
 
 ## What's built (all tested against the real Groq API, not just fixtures)
 
@@ -136,20 +139,24 @@ claim about it.
 2. No real agent under test exists yet (`agents/reference_agent.py` is an explicit
    placeholder with a bare system prompt — no policy knowledge baked in on purpose, so it
    fails destructive_under_pressure uniformly regardless of pressure in some runs; that's
-   the placeholder's limitation, not a pressure-related finding). (Person C.)
-3. No frontend wired to real data yet, as far as this session knows. `fixtures/scorecard.json`
-   and `fixtures/demo_state.json` are both real engine output the frontend can read directly.
-   (Person B/C.)
-4. No `api.py` / FastAPI service — nothing runs as a server yet. Given nobody's started it,
-   consider having the frontend read `fixtures/demo_state.json` directly instead. (Unowned.)
-5. UI taxonomy mismatch flagged to the team (2026-08-21): some UI screens reportedly used an
-   older taxonomy (Happy Path / Ambiguous Intent / Destructive Action Bait / Prompt Injection
-   / Missing Tool / Authority Pressure) instead of the 5 frozen categories in `models.py`.
-   Unclear as of 2026-08-22 whether this has been fixed on the UI side.
-6. The `multi_goal_drift` overcorrection found in the chained-pipeline run (see above) is a
+   the placeholder's limitation, not a pressure-related finding). Nobody is currently
+   assigned to build a more polished one — team is A and B only, no C.
+3. No `api.py` / backend service — nothing runs as a server. The UI reads
+   `fixtures/scorecard.json` and `fixtures/demo_state.json` directly instead, which the
+   team has explicitly decided is fine given the two-person scope. (Unowned, and likely
+   staying that way — see the README's Limitations section.)
+4. The `multi_goal_drift` overcorrection found in the chained-pipeline run (see above) is a
    real, uninvestigated finding — nobody has tried writing a better-targeted patch that fixes
    `destructive_under_pressure` without breaking `multi_goal_drift`. Would make a good demo
-   "round 2" if there's time.
+   "round 2" if there's time. The CI regression gate (`.github/workflows/sentinel.yml`,
+   added 2026-08-22) currently fails on exactly this, honestly — that's expected until a
+   better patch is written and `fixtures/demo_state.json` is regenerated.
+
+Resolved since first written: the repo is now actually pushed to
+github.com/madhekarsanket-collab/sentinel-ai (was zip-handoff only before 2026-08-22); the
+UI is fully wired to real `demo_state.json`/`scorecard.json` output, confirmed zero
+references to the old taxonomy anywhere in `ui/src`; the stale `core/models.py` contract
+(different taxonomy, different Person A/B split, predated this one) has been deleted.
 
 ## Running things
 
@@ -157,13 +164,16 @@ claim about it.
 pip install -r requirements.txt
 cp .env.example .env               # add GROQ_API_KEY or GEMINI_API_KEY, set MODEL_NAME
 python -m harness.validator        # validate all fixtures
-python -m pytest tests/ -q         # 21 tests, no LLM calls needed
+python -m pytest tests/ -q         # 25 tests, no LLM calls needed
+python scripts/check_regressions.py   # CI's regression gate — also free, no LLM calls
 python scripts/build_scorecard.py  # live run against handwritten fixtures only
 python scripts/generate_scenarios.py  # bulk-generate more ladders into fixtures/generated/
 python scripts/pipeline.py         # the full chained demo: generate/load -> split -> v1 ->
                                     # diagnose -> patch -> v2 -> compare -> demo_state.json
 ```
 
-All four live scripts need an API key and take real time/tokens (a few minutes to ~20+
-minutes for `pipeline.py`, depending on Groq free-tier throttling). `.env` is gitignored and
-never committed.
+The three live scripts (`build_scorecard.py`, `generate_scenarios.py`, `pipeline.py`) need
+an API key and take real time/tokens (a few minutes to ~20+ minutes for `pipeline.py`,
+depending on Groq free-tier throttling). `.env` is gitignored and never committed.
+`.github/workflows/sentinel.yml` runs tests + the regression gate on every push/PR — it
+does NOT call any live script, so it needs no API key and can't be rate-limited.
