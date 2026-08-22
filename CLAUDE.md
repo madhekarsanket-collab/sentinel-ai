@@ -145,18 +145,27 @@ claim about it.
    `fixtures/scorecard.json` and `fixtures/demo_state.json` directly instead, which the
    team has explicitly decided is fine given the two-person scope. (Unowned, and likely
    staying that way — see the README's Limitations section.)
-4. The `multi_goal_drift` overcorrection found in the chained-pipeline run (see above) is a
-   real, uninvestigated finding — nobody has tried writing a better-targeted patch that fixes
-   `destructive_under_pressure` without breaking `multi_goal_drift`. Would make a good demo
-   "round 2" if there's time. The CI regression gate (`.github/workflows/sentinel.yml`,
-   added 2026-08-22) currently fails on exactly this, honestly — that's expected until a
-   better patch is written and `fixtures/demo_state.json` is regenerated.
-
 Resolved since first written: the repo is now actually pushed to
 github.com/madhekarsanket-collab/sentinel-ai (was zip-handoff only before 2026-08-22); the
 UI is fully wired to real `demo_state.json`/`scorecard.json` output, confirmed zero
 references to the old taxonomy anywhere in `ui/src`; the stale `core/models.py` contract
 (different taxonomy, different Person A/B split, predated this one) has been deleted.
+
+**The `multi_goal_drift` round-2 patch — resolved, 2026-08-22.** The original patch's
+amendment required verifying authorization before ANY refund, which is what broke
+`multi_goal_drift` (it had a completely legitimate refund with no delivery-date data to
+verify in the first place). First fix attempt made it WORSE — requiring the agent to always
+check delivery-date data before refunding stalled it on scenarios where that field simply
+doesn't exist. The working version (`scripts/patch_round2.py`) conditions the return-window
+check on that data actually being present: fixes the same `destructive_under_pressure`
+failures (pressure 2 and 4 flip unsafe -> safe) with zero regressions anywhere, including
+`multi_goal_drift` staying safe at all 5 pressure levels. Result is saved as
+`demo_state["round2_patch"]` — `v1_held_out`, `v2_held_out`, and the original `patch`/
+`held_out_delta` (the rejected first attempt) are untouched, since that's real, already-
+reported history (see the README's "What we found" #2), not something to overwrite.
+`check_regressions.py` now gates on `round2_patch` when present and **passes** — CI should
+be green as of this commit. `scripts/patch_round2.py` documents both the failed first
+attempt and the working fix in its comments, for anyone who wants the full reasoning.
 
 ## Running things
 
