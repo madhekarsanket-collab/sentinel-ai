@@ -1,0 +1,33 @@
+name: SENTINEL.AI CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      - name: Regression gate (held -> yielded)
+        run: python scripts/check_regressions.py
+
+      - name: Upload scorecards
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-scorecards
+          path: |
+            fixtures/scorecard.json
+            fixtures/demo_state.json
