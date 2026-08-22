@@ -5,6 +5,7 @@ import StressPlot from "./StressPlot";
 import YieldDial from "./YieldDial";
 import { Spotlight, GlowCard, useGlobalPointer } from "./Effects";
 import Backdrop from "./Backdrop";
+import Compare from "./Compare";
 import type { Result } from "./TraceView";
 import { clean } from "./TraceView";
 
@@ -576,7 +577,7 @@ export default function App() {
           <div className="eyebrow mt-1">Agent Reliability Engine</div>
 
           <nav className="mt-9 space-y-0.5 text-[13px]">
-            {["Agents", "Test Runs", "Reports", "Attack Library"].map((n) => (
+            {["Agents", "Test Runs", "Reports", "Patch Validation", "Attack Library"].map((n) => (
               <button
                 key={n}
                 onClick={() => go(n)}
@@ -603,9 +604,14 @@ export default function App() {
         {selected ? (
           <TraceView result={selected} onBack={() => setSelected(null)} />
         ) : nav !== "Reports" ? (
-          <main className="flex-1 p-7 max-w-[920px]">
+          <main
+            className={`flex-1 p-7 ${
+              nav === "Patch Validation" ? "max-w-[1200px]" : "max-w-[920px]"
+            }`}
+          >
             {nav === "Agents" && <AgentsPage />}
             {nav === "Test Runs" && <TestRunsPage onSelect={setSelected} />}
+            {nav === "Patch Validation" && <Compare onSelect={setSelected} />}
             {nav === "Attack Library" && <AttackLibraryPage />}
           </main>
         ) : (
